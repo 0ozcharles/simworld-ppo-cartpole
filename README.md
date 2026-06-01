@@ -73,6 +73,10 @@ Outputs are written to `runs/<run_name>/`:
 
 ## Run In Google Colab
 
+Open directly:
+
+[https://colab.research.google.com/github/0ozcharles/simworld-ppo-cartpole/blob/main/notebooks/ppo_cartpole_colab.ipynb](https://colab.research.google.com/github/0ozcharles/simworld-ppo-cartpole/blob/main/notebooks/ppo_cartpole_colab.ipynb)
+
 Open `notebooks/ppo_cartpole_colab.ipynb` in Colab and run all cells. The
 notebook installs dependencies, loads the project implementation, trains the
 agent, plots the reward curve, and runs a 100-episode evaluation.

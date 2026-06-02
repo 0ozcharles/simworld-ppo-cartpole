@@ -90,10 +90,10 @@ Recommended Colab settings:
 
 ## Results
 
-Latest Colab run:
+Final Colab run included in this repository:
 
 ```text
-Run directory: runs/cartpole-v1_ppo_seed42_1780360122
+Run directory: runs/cartpole-v1_ppo_seed42_1780362664
 Training episodes collected: 4018
 Training last-100 stochastic rollout average return: 139.29
 Deterministic evaluation mean return over 100 episodes: 500.00
@@ -105,7 +105,15 @@ The training curve is collected from stochastic rollout episodes during PPO
 optimization, so it can remain noisy even when the learned deterministic policy
 is strong. The final pass/fail result is the deterministic 100-episode
 evaluation, which reaches the maximum CartPole-v1 return of 500. Generated
-artifacts are saved under `runs/<run_name>/`.
+artifacts are saved under `runs/cartpole-v1_ppo_seed42_1780362664/`.
+
+Key result artifacts:
+
+- `runs/cartpole-v1_ppo_seed42_1780362664/reward_curve.png`
+- `runs/cartpole-v1_ppo_seed42_1780362664/evaluation_curve.png`
+- `runs/cartpole-v1_ppo_seed42_1780362664/metrics.csv`
+- `runs/cartpole-v1_ppo_seed42_1780362664/summary.json`
+- `runs/cartpole-v1_ppo_seed42_1780362664/evaluation.json`
 
 ## Design Notes
 

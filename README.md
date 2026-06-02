@@ -134,3 +134,10 @@ Run the lightweight structure and syntax check:
 ```bash
 python scripts/check_project.py
 ```
+
+If a completed run has final evaluation metrics but is missing
+`evaluation_curve.png`, regenerate it with:
+
+```bash
+python scripts/make_evaluation_curve.py runs/<run_name>
+```

@@ -27,20 +27,23 @@ from torch.distributions.categorical import Categorical
 class PPOConfig:
     env_id: str = "CartPole-v1"
     seed: int = 42
-    total_timesteps: int = 500_000
-    learning_rate: float = 1.0e-3
+    total_timesteps: int = 1_000_000
+    learning_rate: float = 3.0e-4
     num_envs: int = 8
     num_steps: int = 256
-    update_epochs: int = 8
+    update_epochs: int = 4
     num_minibatches: int = 4
     gamma: float = 0.99
     gae_lambda: float = 0.95
     clip_coef: float = 0.2
-    ent_coef: float = 0.001
+    ent_coef: float = 0.0
     vf_coef: float = 0.5
     max_grad_norm: float = 0.5
+    target_kl: float = 0.03
     target_reward: float = 450.0
     eval_episodes: int = 100
+    eval_interval: int = 10
+    eval_progress_episodes: int = 10
     output_dir: str = "runs"
     device: str = "auto"
     log_interval: int = 5
@@ -196,13 +199,35 @@ def save_evaluation_curve(path: Path, episode_returns: list[float]) -> None:
     plt.close()
 
 
+def save_eval_progress_curve(path: Path, rows: list[dict[str, float]]) -> None:
+    if not rows:
+        return
+    steps = [row["global_step"] for row in rows]
+    means = [row["mean_return"] for row in rows]
+    stds = [row["std_return"] for row in rows]
+    lower = [max(0.0, mean - std) for mean, std in zip(means, stds)]
+    upper = [min(500.0, mean + std) for mean, std in zip(means, stds)]
+
+    plt.figure(figsize=(9, 5))
+    plt.plot(steps, means, marker="o", linewidth=2, label="Mean deterministic return")
+    plt.fill_between(steps, lower, upper, alpha=0.2, label="+/- 1 std")
+    plt.axhline(450, color="tab:red", linestyle="--", linewidth=1, label="Target 450")
+    plt.xlabel("Environment steps")
+    plt.ylabel("Return")
+    plt.title("Deterministic Evaluation During PPO Training")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(path, dpi=160)
+    plt.close()
+
+
 def evaluate(
     agent: ActorCritic,
     env_id: str,
     device: torch.device,
     episodes: int,
     seed: int,
-) -> dict[str, float]:
+) -> dict[str, Any]:
     env = gym.make(env_id)
     returns: list[float] = []
 
@@ -268,11 +293,17 @@ def train(config: PPOConfig) -> dict[str, Any]:
 
     episode_returns: list[float] = []
     metric_rows: list[dict[str, float]] = []
+    eval_progress_rows: list[dict[str, float]] = []
     global_step = 0
     start_time = time.time()
     num_updates = config.total_timesteps // config.batch_size
 
     for update in range(1, num_updates + 1):
+        frac = 1.0 - (update - 1.0) / num_updates
+        learning_rate_now = frac * config.learning_rate
+        for param_group in optimizer.param_groups:
+            param_group["lr"] = learning_rate_now
+
         for step in range(config.num_steps):
             global_step += config.num_envs
             obs[step] = next_obs
@@ -317,6 +348,8 @@ def train(config: PPOConfig) -> dict[str, Any]:
 
         indices = np.arange(config.batch_size)
         clip_fracs: list[float] = []
+        approx_kl_value = 0.0
+        stopped_by_kl = 0.0
 
         for _ in range(config.update_epochs):
             np.random.shuffle(indices)
@@ -331,6 +364,7 @@ def train(config: PPOConfig) -> dict[str, Any]:
 
                 with torch.no_grad():
                     approx_kl = ((ratio - 1.0) - log_ratio).mean()
+                    approx_kl_value = float(approx_kl.item())
                     clip_fracs.append(
                         float(((ratio - 1.0).abs() > config.clip_coef).float().mean().item())
                     )
@@ -356,6 +390,13 @@ def train(config: PPOConfig) -> dict[str, Any]:
                 nn.utils.clip_grad_norm_(agent.parameters(), config.max_grad_norm)
                 optimizer.step()
 
+                if approx_kl_value > config.target_kl:
+                    stopped_by_kl = 1.0
+                    break
+
+            if stopped_by_kl:
+                break
+
         y_pred = b_values.detach().cpu().numpy()
         y_true = b_returns.detach().cpu().numpy()
         explained_variance = np.nan
@@ -369,17 +410,47 @@ def train(config: PPOConfig) -> dict[str, Any]:
             "global_step": float(global_step),
             "episodes": float(len(episode_returns)),
             "last_100_return": last_100,
-            "approx_kl": float(approx_kl.item()),
+            "approx_kl": approx_kl_value,
             "clip_fraction": float(np.mean(clip_fracs)),
             "explained_variance": explained_variance,
+            "learning_rate": learning_rate_now,
+            "stopped_by_kl": stopped_by_kl,
             "steps_per_second": float(steps_per_second),
         }
         metric_rows.append(row)
 
+        if (
+            update == 1
+            or update % config.eval_interval == 0
+            or update == num_updates
+        ):
+            eval_progress = evaluate(
+                agent=agent,
+                env_id=config.env_id,
+                device=device,
+                episodes=config.eval_progress_episodes,
+                seed=config.seed + 50_000 + update * 100,
+            )
+            eval_progress_rows.append(
+                {
+                    "update": float(update),
+                    "global_step": float(global_step),
+                    "episodes": float(eval_progress["episodes"]),
+                    "mean_return": float(eval_progress["mean_return"]),
+                    "std_return": float(eval_progress["std_return"]),
+                    "min_return": float(eval_progress["min_return"]),
+                    "max_return": float(eval_progress["max_return"]),
+                }
+            )
+
         if update == 1 or update % config.log_interval == 0:
+            eval_text = ""
+            if eval_progress_rows and eval_progress_rows[-1]["update"] == float(update):
+                eval_text = f" eval_mean={eval_progress_rows[-1]['mean_return']:.1f}"
             print(
                 f"update={update:03d} step={global_step:06d} "
-                f"episodes={len(episode_returns):04d} last100={last_100:.1f} sps={steps_per_second}"
+                f"episodes={len(episode_returns):04d} last100={last_100:.1f}"
+                f"{eval_text} kl={approx_kl_value:.4f} sps={steps_per_second}"
             )
 
         if len(episode_returns) >= 100 and last_100 >= config.target_reward:
@@ -390,7 +461,9 @@ def train(config: PPOConfig) -> dict[str, Any]:
 
     torch.save(agent.state_dict(), run_dir / "model.pt")
     save_metrics_csv(run_dir / "metrics.csv", metric_rows)
+    save_metrics_csv(run_dir / "eval_progress.csv", eval_progress_rows)
     save_reward_curve(run_dir / "reward_curve.png", episode_returns)
+    save_eval_progress_curve(run_dir / "eval_progress_curve.png", eval_progress_rows)
 
     evaluation = evaluate(
         agent=agent,
@@ -425,7 +498,10 @@ def parse_args() -> PPOConfig:
     parser.add_argument("--learning-rate", type=float, default=PPOConfig.learning_rate)
     parser.add_argument("--update-epochs", type=int, default=PPOConfig.update_epochs)
     parser.add_argument("--ent-coef", type=float, default=PPOConfig.ent_coef)
+    parser.add_argument("--target-kl", type=float, default=PPOConfig.target_kl)
     parser.add_argument("--eval-episodes", type=int, default=PPOConfig.eval_episodes)
+    parser.add_argument("--eval-interval", type=int, default=PPOConfig.eval_interval)
+    parser.add_argument("--eval-progress-episodes", type=int, default=PPOConfig.eval_progress_episodes)
     parser.add_argument("--output-dir", type=str, default=PPOConfig.output_dir)
     parser.add_argument("--device", type=str, default=PPOConfig.device)
     args = parser.parse_args()
@@ -437,7 +513,10 @@ def parse_args() -> PPOConfig:
         learning_rate=args.learning_rate,
         update_epochs=args.update_epochs,
         ent_coef=args.ent_coef,
+        target_kl=args.target_kl,
         eval_episodes=args.eval_episodes,
+        eval_interval=args.eval_interval,
+        eval_progress_episodes=args.eval_progress_episodes,
         output_dir=args.output_dir,
         device=args.device,
     )

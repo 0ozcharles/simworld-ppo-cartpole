@@ -144,6 +144,6 @@ local checks and regenerating result plots.
 
 I chose CartPole because it is a small, interpretable benchmark for verifying
 the mechanics of PPO while staying reliable on free Colab. The implementation
-uses vectorized rollouts for faster sample collection and a 500,000-step budget
-to make the final policy stable. I kept the code explicit so the PPO pieces are
-easy to inspect rather than hidden behind a library wrapper.
+uses vectorized rollouts and a larger training budget to make the final policy
+stable. I kept the code explicit so the PPO pieces are easy to inspect rather
+than hidden behind a library wrapper.

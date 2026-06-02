@@ -84,6 +84,25 @@ Key artifacts:
 - `runs/cartpole-v1_ppo_seed42_1780379310/evaluation.json`
 - `runs/cartpole-v1_ppo_seed42_1780379310/model.pt`
 
+## Design Notes
+
+I chose CartPole because it is a small, interpretable benchmark for verifying
+the mechanics of PPO while staying reliable on free Colab. The implementation
+uses vectorized rollouts to collect samples efficiently, and the PPO pieces are
+kept explicit rather than hidden behind a high-level RL wrapper.
+
+During tuning, I found that an aggressive PPO update could still produce a
+strong greedy policy, but the sampled training rollouts remained noisy. I
+treated that as a stability issue and moved to a more conservative setup:
+smaller learning rate, fewer update epochs, no entropy bonus in the final run,
+a `target_kl` guard, and a larger training budget. This made later policy
+updates smoother while preserving the final 100-episode evaluation score.
+
+I report both stochastic training rollouts and deterministic evaluation. The
+rollout curve is useful for seeing learning progress under sampled actions,
+while the deterministic evaluation progress curve is a cleaner view of the
+learned policy quality. This is why both curves are included in the results.
+
 ## Colab Notebook
 
 Open the notebook in Google Colab:
@@ -147,18 +166,3 @@ python src/ppo_cartpole.py --total-timesteps 4096 --num-envs 2 --num-steps 64 --
 The main submission code is in `src/` and the Colab notebook is in
 `notebooks/`. The `scripts/` folder only contains small utility scripts for
 local checks and regenerating result plots.
-
-## Design Notes
-
-I chose CartPole because it is a small, interpretable benchmark for verifying
-the mechanics of PPO while staying reliable on free Colab. The implementation
-uses vectorized rollouts to collect samples efficiently, and I kept the PPO
-update conservative with a smaller learning rate, fewer update epochs, and a
-target KL guard. This helped avoid large policy jumps during later updates.
-
-I report both stochastic training rollouts and deterministic evaluation. The
-training rollouts are useful for seeing learning progress, but they remain
-noisier because actions are sampled from the policy during optimization. The
-deterministic evaluation curve is the cleaner measure of the final learned
-policy, so I include it alongside the rollout curve. I kept the code explicit so
-the PPO pieces are easy to inspect rather than hidden behind a library wrapper.

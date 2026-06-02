@@ -152,6 +152,13 @@ local checks and regenerating result plots.
 
 I chose CartPole because it is a small, interpretable benchmark for verifying
 the mechanics of PPO while staying reliable on free Colab. The implementation
-uses vectorized rollouts and a larger training budget to make the final policy
-stable. I kept the code explicit so the PPO pieces are easy to inspect rather
-than hidden behind a library wrapper.
+uses vectorized rollouts to collect samples efficiently, and I kept the PPO
+update conservative with a smaller learning rate, fewer update epochs, and a
+target KL guard. This helped avoid large policy jumps during later updates.
+
+I report both stochastic training rollouts and deterministic evaluation. The
+training rollouts are useful for seeing learning progress, but they remain
+noisier because actions are sampled from the policy during optimization. The
+deterministic evaluation curve is the cleaner measure of the final learned
+policy, so I include it alongside the rollout curve. I kept the code explicit so
+the PPO pieces are easy to inspect rather than hidden behind a library wrapper.

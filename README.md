@@ -115,6 +115,14 @@ Key result artifacts:
 - `runs/cartpole-v1_ppo_seed42_1780362664/summary.json`
 - `runs/cartpole-v1_ppo_seed42_1780362664/evaluation.json`
 
+Training rollout curve:
+
+![Training rollout curve](runs/cartpole-v1_ppo_seed42_1780362664/reward_curve.png)
+
+Final deterministic evaluation curve:
+
+![Final deterministic evaluation curve](runs/cartpole-v1_ppo_seed42_1780362664/evaluation_curve.png)
+
 ## Design Notes
 
 I chose CartPole because it provides a clean test of PPO mechanics while staying

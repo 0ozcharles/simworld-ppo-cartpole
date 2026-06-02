@@ -32,16 +32,16 @@ from torch.distributions.categorical import Categorical
 class PPOConfig:
     env_id: str = "CartPole-v1"
     seed: int = 42
-    total_timesteps: int = 150_000
-    learning_rate: float = 2.5e-4
+    total_timesteps: int = 500_000
+    learning_rate: float = 1.0e-3
     num_envs: int = 8
-    num_steps: int = 128
-    update_epochs: int = 4
+    num_steps: int = 256
+    update_epochs: int = 8
     num_minibatches: int = 4
     gamma: float = 0.99
     gae_lambda: float = 0.95
     clip_coef: float = 0.2
-    ent_coef: float = 0.01
+    ent_coef: float = 0.001
     vf_coef: float = 0.5
     max_grad_norm: float = 0.5
     target_reward: float = 450.0
@@ -62,14 +62,15 @@ class PPOConfig:
 class ActorCritic(nn.Module):
     def __init__(self, obs_dim: int, action_dim: int) -> None:
         super().__init__()
+        hidden_dim = 128
         self.network = nn.Sequential(
-            nn.Linear(obs_dim, 64),
+            layer_init(nn.Linear(obs_dim, hidden_dim)),
             nn.Tanh(),
-            nn.Linear(64, 64),
+            layer_init(nn.Linear(hidden_dim, hidden_dim)),
             nn.Tanh(),
         )
-        self.actor = nn.Linear(64, action_dim)
-        self.critic = nn.Linear(64, 1)
+        self.actor = layer_init(nn.Linear(hidden_dim, action_dim), std=0.01)
+        self.critic = layer_init(nn.Linear(hidden_dim, 1), std=1.0)
 
     def forward_features(self, obs: torch.Tensor) -> torch.Tensor:
         return self.network(obs.float())
@@ -96,6 +97,12 @@ class ActorCritic(nn.Module):
         if deterministic:
             return torch.argmax(logits, dim=-1)
         return Categorical(logits=logits).sample()
+
+
+def layer_init(layer: nn.Linear, std: float = np.sqrt(2), bias_const: float = 0.0) -> nn.Linear:
+    nn.init.orthogonal_(layer.weight, std)
+    nn.init.constant_(layer.bias, bias_const)
+    return layer
 
 
 def make_env(env_id: str, seed: int, index: int):
@@ -391,6 +398,8 @@ def parse_args() -> PPOConfig:
     parser.add_argument("--num-envs", type=int, default=PPOConfig.num_envs)
     parser.add_argument("--num-steps", type=int, default=PPOConfig.num_steps)
     parser.add_argument("--learning-rate", type=float, default=PPOConfig.learning_rate)
+    parser.add_argument("--update-epochs", type=int, default=PPOConfig.update_epochs)
+    parser.add_argument("--ent-coef", type=float, default=PPOConfig.ent_coef)
     parser.add_argument("--eval-episodes", type=int, default=PPOConfig.eval_episodes)
     parser.add_argument("--output-dir", type=str, default=PPOConfig.output_dir)
     parser.add_argument("--device", type=str, default=PPOConfig.device)
@@ -401,6 +410,8 @@ def parse_args() -> PPOConfig:
         num_envs=args.num_envs,
         num_steps=args.num_steps,
         learning_rate=args.learning_rate,
+        update_epochs=args.update_epochs,
+        ent_coef=args.ent_coef,
         eval_episodes=args.eval_episodes,
         output_dir=args.output_dir,
         device=args.device,

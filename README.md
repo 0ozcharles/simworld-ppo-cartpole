@@ -59,7 +59,7 @@ python src/ppo_cartpole.py
 For a quick smoke run:
 
 ```bash
-python src/ppo_cartpole.py --total-timesteps 2048 --num-envs 2 --num-steps 64 --eval-episodes 5
+python src/ppo_cartpole.py --total-timesteps 4096 --num-envs 2 --num-steps 64 --eval-episodes 5
 ```
 
 Outputs are written to `runs/<run_name>/`:
@@ -105,7 +105,9 @@ I chose CartPole because it provides a clean test of PPO mechanics while staying
 small enough to run reliably on free Colab. Vectorized rollouts improve sample
 collection speed, and the clipped PPO objective keeps updates stable without
 requiring careful trust-region machinery. The code is intentionally explicit so
-the algorithmic pieces are easy to inspect.
+the algorithmic pieces are easy to inspect. The default run uses a larger
+500,000-step budget because short PPO runs can be noisy on CartPole and may not
+consistently reach the 450-return target.
 
 ## Reproducibility
 

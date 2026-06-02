@@ -67,8 +67,10 @@ Outputs are written to `runs/<run_name>/`:
 - `config.json`
 - `metrics.csv`
 - `reward_curve.png`
+- `evaluation_curve.png`
 - `model.pt`
 - `evaluation.json`
+- `evaluation_returns.csv`
 - `summary.json`
 
 ## Run In Google Colab
@@ -88,16 +90,22 @@ Recommended Colab settings:
 
 ## Results
 
-After training, record the final result here before submitting:
+Latest Colab run:
 
 ```text
-Training last-100 average return: TODO
-Evaluation mean return over 100 episodes: TODO
-Evaluation standard deviation: TODO
+Run directory: runs/cartpole-v1_ppo_seed42_1780360122
+Training episodes collected: 4018
+Training last-100 stochastic rollout average return: 139.29
+Deterministic evaluation mean return over 100 episodes: 500.00
+Evaluation standard deviation: 0.00
+Evaluation min / max return: 500.00 / 500.00
 ```
 
-Add the generated reward curve image from `runs/<run_name>/reward_curve.png` to
-the final repository or leave it in the run output folder.
+The training curve is collected from stochastic rollout episodes during PPO
+optimization, so it can remain noisy even when the learned deterministic policy
+is strong. The final pass/fail result is the deterministic 100-episode
+evaluation, which reaches the maximum CartPole-v1 return of 500. Generated
+artifacts are saved under `runs/<run_name>/`.
 
 ## Design Notes
 

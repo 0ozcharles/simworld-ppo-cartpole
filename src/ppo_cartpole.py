@@ -156,6 +156,14 @@ def save_metrics_csv(path: Path, rows: list[dict[str, float]]) -> None:
         writer.writerows(rows)
 
 
+def save_episode_returns_csv(path: Path, episode_returns: list[float]) -> None:
+    with path.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=["episode", "return"])
+        writer.writeheader()
+        for episode, episode_return in enumerate(episode_returns, start=1):
+            writer.writerow({"episode": episode, "return": episode_return})
+
+
 def save_reward_curve(path: Path, episode_returns: list[float]) -> None:
     if not episode_returns:
         return
@@ -170,6 +178,23 @@ def save_reward_curve(path: Path, episode_returns: list[float]) -> None:
     plt.xlabel("Episode")
     plt.ylabel("Return")
     plt.title("PPO on CartPole-v1")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(path, dpi=160)
+    plt.close()
+
+
+def save_evaluation_curve(path: Path, episode_returns: list[float]) -> None:
+    if not episode_returns:
+        return
+    mean_return = float(np.mean(episode_returns))
+    plt.figure(figsize=(9, 5))
+    plt.plot(episode_returns, marker="o", linewidth=1.5, label="Evaluation return")
+    plt.axhline(mean_return, color="tab:green", linestyle="-", linewidth=2, label=f"Mean {mean_return:.1f}")
+    plt.axhline(450, color="tab:red", linestyle="--", linewidth=1, label="Target 450")
+    plt.xlabel("Evaluation episode")
+    plt.ylabel("Return")
+    plt.title("Deterministic Policy Evaluation on CartPole-v1")
     plt.legend()
     plt.tight_layout()
     plt.savefig(path, dpi=160)
@@ -208,6 +233,7 @@ def evaluate(
         "std_return": float(np.std(returns)),
         "min_return": float(np.min(returns)),
         "max_return": float(np.max(returns)),
+        "episode_returns": returns,
     }
 
 
@@ -378,13 +404,17 @@ def train(config: PPOConfig) -> dict[str, Any]:
         episodes=config.eval_episodes,
         seed=config.seed + 10_000,
     )
+    save_episode_returns_csv(run_dir / "evaluation_returns.csv", evaluation["episode_returns"])
+    save_evaluation_curve(run_dir / "evaluation_curve.png", evaluation["episode_returns"])
     (run_dir / "evaluation.json").write_text(json.dumps(evaluation, indent=2), encoding="utf-8")
 
     summary = {
         "run_dir": str(run_dir),
         "episodes": len(episode_returns),
         "last_100_train_return": float(np.mean(episode_returns[-100:])) if episode_returns else 0.0,
-        "evaluation": evaluation,
+        "evaluation": {
+            key: value for key, value in evaluation.items() if key != "episode_returns"
+        },
     }
     (run_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     print(json.dumps(summary, indent=2))

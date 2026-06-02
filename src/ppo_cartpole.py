@@ -1,9 +1,4 @@
-"""Train PPO from scratch on CartPole-v1.
-
-The implementation intentionally avoids stable-baselines wrappers. It uses
-Gymnasium only for the environment and PyTorch for the neural network/update
-steps.
-"""
+"""Train PPO from scratch on CartPole-v1."""
 
 from __future__ import annotations
 

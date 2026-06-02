@@ -1,9 +1,4 @@
 """Generate an evaluation curve for a completed PPO run.
-
-This is useful when an older notebook run saved aggregate evaluation metrics but
-did not save ``evaluation_curve.png`` yet. If per-episode returns are missing
-and the aggregate metrics show a constant return, the script reconstructs the
-constant curve.
 """
 
 from __future__ import annotations

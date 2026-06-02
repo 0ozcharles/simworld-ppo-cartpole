@@ -1,0 +1,12 @@
+{
+  "run_dir": "runs/cartpole-v1_ppo_seed42_1780362664",
+  "episodes": 4018,
+  "last_100_train_return": 139.29,
+  "evaluation": {
+    "episodes": 100.0,
+    "mean_return": 500.0,
+    "std_return": 0.0,
+    "min_return": 500.0,
+    "max_return": 500.0
+  }
+}

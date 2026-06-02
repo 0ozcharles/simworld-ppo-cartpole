@@ -1,7 +1,7 @@
 {
-  "run_dir": "runs/cartpole-v1_ppo_seed42_1780362664",
-  "episodes": 4018,
-  "last_100_train_return": 139.29,
+  "run_dir": "runs/cartpole-v1_ppo_seed42_1780379310",
+  "episodes": 6046,
+  "last_100_train_return": 375.9,
   "evaluation": {
     "episodes": 100.0,
     "mean_return": 500.0,

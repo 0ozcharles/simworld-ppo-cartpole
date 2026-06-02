@@ -27,7 +27,7 @@ Minimum / maximum return: 500.00 / 500.00
 The completed run is included in:
 
 ```text
-runs/cartpole-v1_ppo_seed42_1780362664/
+runs/cartpole-v1_ppo_seed42_1780379310/
 ```
 
 ## Implementation
@@ -51,9 +51,9 @@ The main algorithmic components are implemented directly:
 Final Colab run:
 
 ```text
-Run directory: runs/cartpole-v1_ppo_seed42_1780362664
-Training episodes collected: 4018
-Training last-100 stochastic rollout average return: 139.29
+Run directory: runs/cartpole-v1_ppo_seed42_1780379310
+Training episodes collected: 6046
+Training last-100 stochastic rollout average return: 375.90
 Deterministic evaluation mean return over 100 episodes: 500.00
 Evaluation standard deviation: 0.00
 Evaluation min / max return: 500.00 / 500.00
@@ -64,19 +64,25 @@ PPO optimization. Because training uses sampled actions for exploration, this
 curve can stay noisy even after the deterministic policy has learned a strong
 solution.
 
-![Training rollout curve](runs/cartpole-v1_ppo_seed42_1780362664/reward_curve.png)
+![Training rollout curve](runs/cartpole-v1_ppo_seed42_1780379310/reward_curve.png)
+
+The deterministic evaluation progress curve tracks the greedy policy during
+training and is a less noisy view of policy quality than sampled rollouts.
+
+![Deterministic evaluation progress curve](runs/cartpole-v1_ppo_seed42_1780379310/eval_progress_curve.png)
 
 The final evaluation curve uses the trained deterministic policy over 100
 episodes. It reaches the maximum CartPole-v1 return of 500 in every episode.
 
-![Final deterministic evaluation curve](runs/cartpole-v1_ppo_seed42_1780362664/evaluation_curve.png)
+![Final deterministic evaluation curve](runs/cartpole-v1_ppo_seed42_1780379310/evaluation_curve.png)
 
 Key artifacts:
 
-- `runs/cartpole-v1_ppo_seed42_1780362664/metrics.csv`
-- `runs/cartpole-v1_ppo_seed42_1780362664/summary.json`
-- `runs/cartpole-v1_ppo_seed42_1780362664/evaluation.json`
-- `runs/cartpole-v1_ppo_seed42_1780362664/model.pt`
+- `runs/cartpole-v1_ppo_seed42_1780379310/metrics.csv`
+- `runs/cartpole-v1_ppo_seed42_1780379310/eval_progress.csv`
+- `runs/cartpole-v1_ppo_seed42_1780379310/summary.json`
+- `runs/cartpole-v1_ppo_seed42_1780379310/evaluation.json`
+- `runs/cartpole-v1_ppo_seed42_1780379310/model.pt`
 
 ## Colab Notebook
 
@@ -119,10 +125,12 @@ python src/ppo_cartpole.py --total-timesteps 4096 --num-envs 2 --num-steps 64 --
 |-- notebooks/
 |   `-- ppo_cartpole_colab.ipynb
 |-- runs/
-|   `-- cartpole-v1_ppo_seed42_1780362664/
+|   `-- cartpole-v1_ppo_seed42_1780379310/
 |       |-- reward_curve.png
+|       |-- eval_progress_curve.png
 |       |-- evaluation_curve.png
 |       |-- metrics.csv
+|       |-- eval_progress.csv
 |       |-- summary.json
 |       |-- evaluation.json
 |       |-- config.json
